@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.1.9/sweetalert2.min.css" integrity="sha512-cyIcYOviYhF0bHIhzXWJQ/7xnaBuIIOecYoPZBgJHQKFPo+TOBA+BY1EnTpmM8yKDU4ZdI3UGccNGCEUdfbBqw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+  <div id="app">
+    <v-app>
+      <v-main>
+            <v-card class="mx-auto mt-5" color="transparent" max-width="1280" elevation="10">
+                <v-btn class="mx-2" fab dark color="blue" @click="frm_nuevo()"><v-icon>mdi-plus</v-icon> </v-btn>
+                <v-simple-table class="mt-5">
+                    <template v-slot:default>
+                        <thead>
+                            <tr class="purple darken-2">
+                                <th class="white--text">ID</th>
+                                <th class="white--text">DESCRIPCION</th>
+                                <th class="white--text">PRECIO</th>
+                                <th class="white--text">STOCK</th>
+                                <th class="white--text">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="producto in productos" :key="producto.id">
+                                <td>{{producto.id}}</td>
+                                <td>{{producto.descripcion}}</td>
+                                <td>{{producto.precio}}</td>
+                                <td>{{producto.stock}}</td>
+                                <td>
+                                    <v-btn class="pink" dark small fab @click="frm_editar(producto.id, producto.descripcion, producto.precio, producto.stock)"> <v-icon>mdi-pencil</v-icon> </v-btn>
+                                    <v-btn class="error" dark small fab @click="borrar(producto.id)"> <v-icon> mdi-delete </v-icon> </v-btn>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </template>
+                </v-simple-table>
+            </v-card>
+
+            <v-dialog v-model="dialog" max-width="700">
+                <v-card>
+                    <v-card-title class="purple darken-4 white--text"></v-card-title>
+                    <v-card-text>
+                        <v-form>
+                            <v-container>
+                                <v-row>
+                                    <input v-model="producto.id" hidden></input>
+                                    <v-col cols="12" md="4">
+                                        <v-text-field v-model="producto.descripcion" label="descripcion" solo required>{{producto.descripcion}}</v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="4">
+                                        <v-text-field v-model="producto.precio" label="precio" type="number" prefix="$" solo required>{{producto.precio}}</v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" md="4">
+                                        <v-text-field v-model="producto.stock" label="stock" type="number" solo required>{{producto.stock}}</v-text-field>
+                                    </v-col>
+                                </v-row>
+                            </v-container>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn @click="dialog=false" color="blue-grey" dark>Cancelar</v-btn>
+                        <v-btn @click="guardar()" type="submit" color="purple accent-3" dark>Guardar</v-btn>
+                    </v-card-actions>
+                    </v-form>
+                </v-card>
+
+            </v-dialog>
+
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.all.min.js"></script>
+  <script>
+      let url='http://localhost:3000/api/productos/';
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data(){
+        return{
+            productos:[],
+            dialog:false,
+            operacion:'',
+            producto:{
+                id:null,
+                descripcion:'',
+                precio:'',
+                stock:''         
+            }
+        } 
+      },
+      created(){
+        this.mostrar();
+
+      },
+      methods:{
+        mostrar(){
+            axios.get(url).then(response=>{
+                this.productos=response.data;
+            })
+        },
+        
+        crear(){
+            let parametros={descripcion:this.producto.descripcion, precio:this.producto.precio, stock:this.producto.stock};
+            axios.post(url,parametros).then(response=>{
+                this.mostrar()
+            });
+            this.producto.descripcion='';
+            this.producto.precio='';
+            this.producto.stock='';
+        
+        },
+
+        editar(){
+            let parametros={descripcion:this.producto.descripcion, precio:this.producto.precio, stock:this.producto.stock, id:this.producto.id};
+            axios.put(url+this.producto.id, parametros).then(response=>{
+                this.mostrar();
+            });
+        },
+
+        borrar(id){
+            Swal.fire({
+                title:'¿esta seguro?',
+                confirmButtonText:'Confirmar',
+                showCancelButton:true
+            }).then((result)=>{
+                if(result.isConfirmed){
+                    axios.delete(url+id).then(response=>{
+                        this.mostrar();
+                    });
+                    Swal.fire('eliminado','','success')
+                }else if(result.isDenied){}
+            });
+        },
+
+        guardar(){
+            if(this.operacion=='crear'){
+                this.crear();
+            }
+            if(this.operacion=='editar'){
+                this.editar();
+            }
+            this.dialog=false;
+        },
+
+        frm_nuevo(){
+            this.dialog=true;
+            this.operacion='crear';
+            this.producto.descripcion='';
+            this.producto.precio='';
+            this.producto.stock='';
+        },
+
+        frm_editar(id, descripcion, precio,stock){
+            this.producto.id=id;
+            this.producto.descripcion=descripcion;
+            this.producto.precio=precio;
+            this.producto.stock=stock;
+            this.dialog=true;
+            this.operacion='editar';
+        }
+
+
+      }
+    });
+  </script>
+</body>
+</html>
